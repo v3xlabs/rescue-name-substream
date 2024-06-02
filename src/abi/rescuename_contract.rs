@@ -468,11 +468,149 @@
         pub struct Execute {
             pub vaults: Vec<substreams::scalar::BigInt>,
             pub names: Vec<Vec<String>>,
-            pub price: substreams::scalar::BigInt,
             pub payee: Vec<u8>,
         }
         impl Execute {
-            const METHOD_ID: [u8; 4] = [217u8, 60u8, 91u8, 250u8];
+            const METHOD_ID: [u8; 4] = [137u8, 125u8, 159u8, 96u8];
+            pub fn decode(
+                call: &substreams_ethereum::pb::eth::v2::Call,
+            ) -> Result<Self, String> {
+                let maybe_data = call.input.get(4..);
+                if maybe_data.is_none() {
+                    return Err("no data to decode".to_string());
+                }
+                let mut values = ethabi::decode(
+                        &[
+                            ethabi::ParamType::Array(
+                                Box::new(ethabi::ParamType::Uint(256usize)),
+                            ),
+                            ethabi::ParamType::Array(
+                                Box::new(
+                                    ethabi::ParamType::Array(
+                                        Box::new(ethabi::ParamType::String),
+                                    ),
+                                ),
+                            ),
+                            ethabi::ParamType::Address,
+                        ],
+                        maybe_data.unwrap(),
+                    )
+                    .map_err(|e| format!("unable to decode call.input: {:?}", e))?;
+                values.reverse();
+                Ok(Self {
+                    vaults: values
+                        .pop()
+                        .expect(INTERNAL_ERR)
+                        .into_array()
+                        .expect(INTERNAL_ERR)
+                        .into_iter()
+                        .map(|inner| {
+                            let mut v = [0 as u8; 32];
+                            inner
+                                .into_uint()
+                                .expect(INTERNAL_ERR)
+                                .to_big_endian(v.as_mut_slice());
+                            substreams::scalar::BigInt::from_unsigned_bytes_be(&v)
+                        })
+                        .collect(),
+                    names: values
+                        .pop()
+                        .expect(INTERNAL_ERR)
+                        .into_array()
+                        .expect(INTERNAL_ERR)
+                        .into_iter()
+                        .map(|inner| {
+                            inner
+                                .into_array()
+                                .expect(INTERNAL_ERR)
+                                .into_iter()
+                                .map(|inner| inner.into_string().expect(INTERNAL_ERR))
+                                .collect()
+                        })
+                        .collect(),
+                    payee: values
+                        .pop()
+                        .expect(INTERNAL_ERR)
+                        .into_address()
+                        .expect(INTERNAL_ERR)
+                        .as_bytes()
+                        .to_vec(),
+                })
+            }
+            pub fn encode(&self) -> Vec<u8> {
+                let data = ethabi::encode(
+                    &[
+                        {
+                            let v = self
+                                .vaults
+                                .iter()
+                                .map(|inner| ethabi::Token::Uint(
+                                    ethabi::Uint::from_big_endian(
+                                        match inner.clone().to_bytes_be() {
+                                            (num_bigint::Sign::Plus, bytes) => bytes,
+                                            (num_bigint::Sign::NoSign, bytes) => bytes,
+                                            (num_bigint::Sign::Minus, _) => {
+                                                panic!("negative numbers are not supported")
+                                            }
+                                        }
+                                            .as_slice(),
+                                    ),
+                                ))
+                                .collect();
+                            ethabi::Token::Array(v)
+                        },
+                        {
+                            let v = self
+                                .names
+                                .iter()
+                                .map(|inner| {
+                                    let v = inner
+                                        .iter()
+                                        .map(|inner| ethabi::Token::String(inner.clone()))
+                                        .collect();
+                                    ethabi::Token::Array(v)
+                                })
+                                .collect();
+                            ethabi::Token::Array(v)
+                        },
+                        ethabi::Token::Address(ethabi::Address::from_slice(&self.payee)),
+                    ],
+                );
+                let mut encoded = Vec::with_capacity(4 + data.len());
+                encoded.extend(Self::METHOD_ID);
+                encoded.extend(data);
+                encoded
+            }
+            pub fn match_call(call: &substreams_ethereum::pb::eth::v2::Call) -> bool {
+                match call.input.get(0..4) {
+                    Some(signature) => Self::METHOD_ID == signature,
+                    None => false,
+                }
+            }
+        }
+        impl substreams_ethereum::Function for Execute {
+            const NAME: &'static str = "execute";
+            fn match_call(call: &substreams_ethereum::pb::eth::v2::Call) -> bool {
+                Self::match_call(call)
+            }
+            fn decode(
+                call: &substreams_ethereum::pb::eth::v2::Call,
+            ) -> Result<Self, String> {
+                Self::decode(call)
+            }
+            fn encode(&self) -> Vec<u8> {
+                self.encode()
+            }
+        }
+        #[derive(Debug, Clone, PartialEq)]
+        pub struct GetPrice {
+            pub vaults: Vec<substreams::scalar::BigInt>,
+            pub names: Vec<Vec<String>>,
+            pub price: substreams::scalar::BigInt,
+            pub payee: Vec<u8>,
+        }
+        impl GetPrice {
+            const METHOD_ID: [u8; 4] = [49u8, 151u8, 17u8, 89u8];
             pub fn decode(
                 call: &substreams_ethereum::pb::eth::v2::Call,
             ) -> Result<Self, String> {
@@ -605,15 +743,63 @@
                 encoded.extend(data);
                 encoded
             }
+            pub fn output_call(
+                call: &substreams_ethereum::pb::eth::v2::Call,
+            ) -> Result<substreams::scalar::BigInt, String> {
+                Self::output(call.return_data.as_ref())
+            }
+            pub fn output(data: &[u8]) -> Result<substreams::scalar::BigInt, String> {
+                let mut values = ethabi::decode(
+                        &[ethabi::ParamType::Uint(256usize)],
+                        data.as_ref(),
+                    )
+                    .map_err(|e| format!("unable to decode output data: {:?}", e))?;
+                Ok({
+                    let mut v = [0 as u8; 32];
+                    values
+                        .pop()
+                        .expect("one output data should have existed")
+                        .into_uint()
+                        .expect(INTERNAL_ERR)
+                        .to_big_endian(v.as_mut_slice());
+                    substreams::scalar::BigInt::from_unsigned_bytes_be(&v)
+                })
+            }
             pub fn match_call(call: &substreams_ethereum::pb::eth::v2::Call) -> bool {
                 match call.input.get(0..4) {
                     Some(signature) => Self::METHOD_ID == signature,
                     None => false,
                 }
             }
+            pub fn call(&self, address: Vec<u8>) -> Option<substreams::scalar::BigInt> {
+                use substreams_ethereum::pb::eth::rpc;
+                let rpc_calls = rpc::RpcCalls {
+                    calls: vec![
+                        rpc::RpcCall { to_addr : address, data : self.encode(), }
+                    ],
+                };
+                let responses = substreams_ethereum::rpc::eth_call(&rpc_calls).responses;
+                let response = responses
+                    .get(0)
+                    .expect("one response should have existed");
+                if response.failed {
+                    return None;
+                }
+                match Self::output(response.raw.as_ref()) {
+                    Ok(data) => Some(data),
+                    Err(err) => {
+                        use substreams_ethereum::Function;
+                        substreams::log::info!(
+                            "Call output for function `{}` failed to decode with error: {}",
+                            Self::NAME, err
+                        );
+                        None
+                    }
+                }
+            }
         }
-        impl substreams_ethereum::Function for Execute {
-            const NAME: &'static str = "execute";
+        impl substreams_ethereum::Function for GetPrice {
+            const NAME: &'static str = "getPrice";
             fn match_call(call: &substreams_ethereum::pb::eth::v2::Call) -> bool {
                 Self::match_call(call)
             }
@@ -624,6 +810,12 @@
             }
             fn encode(&self) -> Vec<u8> {
                 self.encode()
+            }
+        }
+        impl substreams_ethereum::rpc::RPCDecodable<substreams::scalar::BigInt>
+        for GetPrice {
+            fn output(data: &[u8]) -> Result<substreams::scalar::BigInt, String> {
+                Self::output(data)
             }
         }
         #[derive(Debug, Clone, PartialEq)]

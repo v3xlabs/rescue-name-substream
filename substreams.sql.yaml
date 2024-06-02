@@ -23,7 +23,7 @@ binaries:
 modules:
   - name: map_events
     kind: map
-    initialBlock: 6021953
+    initialBlock: 6023772
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
@@ -31,7 +31,7 @@ modules:
 
   - name: db_out
     kind: map
-    initialBlock: 6021953
+    initialBlock: 6023772
     inputs:
       - map: map_events
     output:
@@ -39,7 +39,7 @@ modules:
 
   - name: graph_out
     kind: map
-    initialBlock: 6021953
+    initialBlock: 6023772
     inputs:
       - map: map_events
     output:

@@ -17,7 +17,7 @@ use substreams::scalar::BigDecimal;
 
 substreams_ethereum::init!();
 
-const RESCUENAME_TRACKED_CONTRACT: [u8; 20] = hex!("8c82dd2f5Ad2E4F70d2710Cc5290e0D80e42191B");
+const RESCUENAME_TRACKED_CONTRACT: [u8; 20] = hex!("8c82dd2f5ad2e4f70d2710cc5290e0d80e42191b");
 
 fn map_rescuename_events(blk: &eth::Block, events: &mut contract::Events) {
     events.rescuename_name_addeds.append(&mut blk
