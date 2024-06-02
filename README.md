@@ -10,7 +10,7 @@ This repository contains the substream belonging to [v3xlabs/rescue-name](https:
 
 ## Deployment
 
-Hosted at [StreamFast](https://srv.streamingfast.io/9e804b35/graphiql).
+Hosted at [srv.streamfast.io/b868bc69](https://srv.streamingfast.io/b868bc69/graphiql).
 
 ```
 make build
