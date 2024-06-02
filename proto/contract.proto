@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+package contract.v1;
+
+message Events {
+    repeated rescuename_NameAdded rescuename_name_addeds = 1;
+    repeated rescuename_NameRemoved rescuename_name_removeds = 2;
+    repeated rescuename_OwnershipTransferred rescuename_ownership_transferreds = 3;
+    repeated rescuename_RescueNameVaultCreated rescuename_rescue_name_vault_createds = 4;
+}
+
+message rescuename_NameAdded {
+    string evt_tx_hash = 1;
+    uint32 evt_index = 2;
+    google.protobuf.Timestamp evt_block_time = 3;
+    uint64 evt_block_number = 4;
+    string vault = 5;
+    string name = 6;
+}
+
+message rescuename_NameRemoved {
+    string evt_tx_hash = 1;
+    uint32 evt_index = 2;
+    google.protobuf.Timestamp evt_block_time = 3;
+    uint64 evt_block_number = 4;
+    string vault = 5;
+    string name = 6;
+}
+
+message rescuename_OwnershipTransferred {
+    string evt_tx_hash = 1;
+    uint32 evt_index = 2;
+    google.protobuf.Timestamp evt_block_time = 3;
+    uint64 evt_block_number = 4;
+    bytes user = 5;
+    bytes new_owner = 6;
+}
+
+message rescuename_RescueNameVaultCreated {
+    string evt_tx_hash = 1;
+    uint32 evt_index = 2;
+    google.protobuf.Timestamp evt_block_time = 3;
+    uint64 evt_block_number = 4;
+    string vault_id = 5;
+    bytes owner = 6;
+}

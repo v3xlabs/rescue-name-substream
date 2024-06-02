@@ -1,0 +1,36 @@
+type rescuename_name_added @entity {
+    id: ID!
+    evt_tx_hash: String!
+    evt_index: BigInt!
+    evt_block_time: String!
+    evt_block_number: BigInt!
+    name: String!
+    vault: BigDecimal!
+}
+type rescuename_name_removed @entity {
+    id: ID!
+    evt_tx_hash: String!
+    evt_index: BigInt!
+    evt_block_time: String!
+    evt_block_number: BigInt!
+    name: String!
+    vault: BigDecimal!
+}
+type rescuename_ownership_transferred @entity {
+    id: ID!
+    evt_tx_hash: String!
+    evt_index: BigInt!
+    evt_block_time: String!
+    evt_block_number: BigInt!
+    new_owner: String!
+    user: String!
+}
+type rescuename_rescue_name_vault_created @entity {
+    id: ID!
+    evt_tx_hash: String!
+    evt_index: BigInt!
+    evt_block_time: String!
+    evt_block_number: BigInt!
+    owner: String!
+    vault_id: BigDecimal!
+}
