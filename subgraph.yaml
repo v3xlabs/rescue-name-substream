@@ -7,7 +7,7 @@ schema:
 dataSources:
   - kind: substreams
     name: rescue-name
-    network: mainnet
+    network: sepolia
     source:
       package:
         moduleName: graph_out

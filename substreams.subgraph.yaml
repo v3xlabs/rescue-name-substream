@@ -45,7 +45,7 @@ modules:
     output:
       type: proto:sf.substreams.entity.v1.EntityChanges
 
-network: 
+network: sepolia
 
 sink:
   module: graph_out
